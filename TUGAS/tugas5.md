@@ -10,7 +10,7 @@ NIM  : 20200140100
 ![Endpoint update jika format tanggal yang diisi tidak valid](ss/tugas5/tanggal_tidak_valid.png)
 
 ### 3. Endpoint delete data
-![Endpoint delete data](ss/tugas5/tanggal_tidak_valid.png)
+![Endpoint delete data](ss/tugas5/delete.png)
 
 ### 4. Enpoint search berdasarkan nama
 ![Enpoint search berdasarkan nama](ss/tugas5/search_nama.png)
