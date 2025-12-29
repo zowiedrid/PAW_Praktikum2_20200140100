@@ -1,5 +1,4 @@
-const presensiRecords = require("../data/presensiData");
-const { Presensi } = require("../models");
+const { Presensi, User } = require("../models");
 const { Op } = require("sequelize");
 // exports.getDailyReport = (req, res) => {
 //  console.log("Controller: Mengambil data laporan harian dari array...");
@@ -11,14 +10,20 @@ const { Op } = require("sequelize");
 
 exports.getDailyReport = async (req, res) => {
  try {
-   const { nama, tanggalMulai, tanggalSelesai } = req.query;
-   let options = { where: {} };
+   const { nama, tanggalMulai, tanggalSelesai, bulan, tahun } = req.query;
+   const whereClause = {};
+   const includeUser = {
+     model: User,
+     as: "user",
+     attributes: ["id", "nama", "email", "role"],
+   };
  
-   // Filter berdasarkan nama
+   // Filter berdasarkan nama user (join ke tabel Users)
    if (nama) {
-     options.where.nama = {
-       [Op.like]: `%${nama}%`,
+     includeUser.where = {
+       nama: { [Op.like]: `%${nama}%` },
      };
+     includeUser.required = true;
    }
  
    // Filter berdasarkan rentang tanggal
@@ -31,7 +36,7 @@ exports.getDailyReport = async (req, res) => {
      const endDate = new Date(tanggalSelesai);
      endDate.setHours(23, 59, 59, 999);
      
-     options.where.checkIn = {
+     whereClause.checkIn = {
        [Op.between]: [startDate, endDate],
      };
    } else if (tanggalMulai) {
@@ -39,7 +44,7 @@ exports.getDailyReport = async (req, res) => {
      const startDate = new Date(tanggalMulai);
      startDate.setHours(0, 0, 0, 0);
      
-     options.where.checkIn = {
+     whereClause.checkIn = {
        [Op.gte]: startDate,
      };
    } else if (tanggalSelesai) {
@@ -47,12 +52,29 @@ exports.getDailyReport = async (req, res) => {
      const endDate = new Date(tanggalSelesai);
      endDate.setHours(23, 59, 59, 999);
      
-     options.where.checkIn = {
+     whereClause.checkIn = {
        [Op.lte]: endDate,
      };
+   } else if (bulan) {
+     const parsedMonth = parseInt(bulan, 10);
+     const parsedYear = tahun ? parseInt(tahun, 10) : new Date().getFullYear();
+
+     if (!Number.isNaN(parsedMonth) && parsedMonth >= 1 && parsedMonth <= 12) {
+       const startDate = new Date(parsedYear, parsedMonth - 1, 1);
+       startDate.setHours(0, 0, 0, 0);
+       const endDate = new Date(parsedYear, parsedMonth, 0, 23, 59, 59, 999);
+
+       whereClause.checkIn = {
+         [Op.between]: [startDate, endDate],
+       };
+     }
    }
  
-   const records = await Presensi.findAll(options);
+   const records = await Presensi.findAll({
+     where: whereClause,
+     include: [includeUser],
+     order: [["checkIn", "DESC"]],
+   });
  
    res.json({
      reportDate: new Date().toLocaleDateString(),
@@ -61,6 +83,8 @@ exports.getDailyReport = async (req, res) => {
        nama: nama || null,
        tanggalMulai: tanggalMulai || null,
        tanggalSelesai: tanggalSelesai || null,
+       bulan: bulan || null,
+       tahun: tahun || null,
      },
      data: records,
    });

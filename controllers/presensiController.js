@@ -6,7 +6,7 @@
  exports.CheckIn = async (req, res) => {
    // 2. Gunakan try...catch untuk error handling
    try {
-     const { id: userId, nama: userName } = req.user;
+   const { id: userId, nama: userName } = req.user;
      const waktuSekarang = new Date();
   
      // 3. Ubah cara mencari data menggunakan 'findOne' dari Sequelize
@@ -23,13 +23,11 @@
      // 4. Ubah cara membuat data baru menggunakan 'create' dari Sequelize
      const newRecord = await Presensi.create({
        userId: userId,
-       nama: userName,
        checkIn: waktuSekarang,
      });
      
      const formattedData = {
          userId: newRecord.userId,
-         nama: newRecord.nama,
          checkIn: format(newRecord.checkIn, "yyyy-MM-dd HH:mm:ssXXX", { timeZone }),
          checkOut: null
      };
@@ -50,7 +48,7 @@
  exports.CheckOut = async (req, res) => {
    // Gunakan try...catch
    try {
-     const { id: userId, nama: userName } = req.user;
+   const { id: userId, nama: userName } = req.user;
      const waktuSekarang = new Date();
   
      // Cari data di database
@@ -69,10 +67,9 @@
      await recordToUpdate.save();
   
      const formattedData = {
-         userId: recordToUpdate.userId,
-         nama: recordToUpdate.nama,
-         checkIn: format(recordToUpdate.checkIn, "yyyy-MM-dd HH:mm:ssXXX", { timeZone }),
-         checkOut: format(recordToUpdate.checkOut, "yyyy-MM-dd HH:mm:ssXXX", { timeZone }),
+       userId: recordToUpdate.userId,
+       checkIn: format(recordToUpdate.checkIn, "yyyy-MM-dd HH:mm:ssXXX", { timeZone }),
+       checkOut: format(recordToUpdate.checkOut, "yyyy-MM-dd HH:mm:ssXXX", { timeZone }),
      };
   
      res.json({
@@ -99,7 +96,7 @@
        .status(404)
        .json({ message: "Catatan presensi tidak ditemukan." });
    }
-   if (recordToDelete.userId !== userId) {
+     if (recordToDelete.userId !== userId && (!req.user || req.user.role !== 'admin')) {
      return res
        .status(403)
        .json({ message: "Akses ditolak: Anda bukan pemilik catatan ini." });
@@ -116,12 +113,12 @@
 exports.updatePresensi = async (req, res) => {
  try {
    const presensiId = req.params.id;
-   const { waktuCheckIn, waktuCheckOut, nama } = req.body;
+   const { waktuCheckIn, waktuCheckOut } = req.body;
    
-   if (waktuCheckIn === undefined && waktuCheckOut === undefined && nama === undefined) {
+   if (waktuCheckIn === undefined && waktuCheckOut === undefined) {
      return res.status(400).json({
        message:
-         "Request body tidak berisi data yang valid untuk diupdate (waktuCheckIn, waktuCheckOut, atau nama).",
+         "Request body tidak berisi data yang valid untuk diupdate (waktuCheckIn atau waktuCheckOut).",
      });
    }
    
@@ -132,6 +129,11 @@ exports.updatePresensi = async (req, res) => {
        .json({ message: "Catatan presensi tidak ditemukan." });
    }
  
+   // Batasi perubahan hanya untuk pemilik catatan atau admin
+   if (req.user && req.user.role !== 'admin' && recordToUpdate.userId !== req.user.id) {
+     return res.status(403).json({ message: "Akses ditolak: Anda bukan pemilik catatan ini." });
+   }
+
    // Update hanya field yang dikirim
    if (waktuCheckIn !== undefined) {
      recordToUpdate.checkIn = new Date(waktuCheckIn);
@@ -139,15 +141,11 @@ exports.updatePresensi = async (req, res) => {
    if (waktuCheckOut !== undefined) {
      recordToUpdate.checkOut = new Date(waktuCheckOut);
    }
-   if (nama !== undefined) {
-     recordToUpdate.nama = nama;
-   }
    
    await recordToUpdate.save();
  
    const formattedData = {
        userId: recordToUpdate.userId,
-       nama: recordToUpdate.nama,
        checkIn: format(recordToUpdate.checkIn, "yyyy-MM-dd HH:mm:ssXXX", { timeZone }),
        checkOut: recordToUpdate.checkOut ? format(recordToUpdate.checkOut, "yyyy-MM-dd HH:mm:ssXXX", { timeZone }) : null
    };
