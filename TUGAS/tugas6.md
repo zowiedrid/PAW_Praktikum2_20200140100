@@ -1,4 +1,4 @@
-# Tugas 5 - Autentikasi API dengan JWT, Bcrypt, dan Role User
+# Tugas 6 - Autentikasi API dengan JWT, Bcrypt, dan Role User
 
 Nama : Ilham Fadhilah
 NIM  : 20200140100
