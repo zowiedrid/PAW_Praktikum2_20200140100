@@ -11,6 +11,8 @@ function ReportPage() {
   const [endDate, setEndDate] = useState('');
   const [month, setMonth] = useState('');
   const [year, setYear] = useState('');
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const navigate = useNavigate();
 
   const getToken = () => localStorage.getItem('token');
@@ -86,6 +88,16 @@ function ReportPage() {
   const handleFilterSubmit = (e) => {
     e.preventDefault();
     fetchReports(searchTerm);
+  };
+
+  const openPhotoModal = (photoUrl) => {
+    setSelectedImage(photoUrl);
+    setIsModalOpen(true);
+  };
+
+  const closePhotoModal = () => {
+    setIsModalOpen(false);
+    setSelectedImage(null);
   };
 
   return (
@@ -176,6 +188,9 @@ function ReportPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Check-Out
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Bukti Foto
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -195,17 +210,54 @@ function ReportPage() {
                         ? new Date(presensi.checkOut).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })
                         : 'Belum Check-Out'}
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {presensi.buktiFoto ? (
+                        <button
+                          onClick={() => openPhotoModal(`http://localhost:3001/${presensi.buktiFoto}`)}
+                          className="inline-block"
+                          title="Klik untuk melihat foto ukuran penuh"
+                        >
+                          <img
+                            src={`http://localhost:3001/${presensi.buktiFoto}`}
+                            alt="Bukti Foto"
+                            className="h-12 w-12 rounded object-cover cursor-pointer hover:opacity-75 transition-opacity"
+                          />
+                        </button>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="3" className="px-6 py-4 text-center text-gray-500">
+                  <td colSpan="4" className="px-6 py-4 text-center text-gray-500">
                     Tidak ada data yang ditemukan.
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Modal untuk menampilkan foto ukuran penuh */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="relative bg-white rounded-lg max-w-2xl max-h-[90vh] overflow-auto">
+            <button
+              onClick={closePhotoModal}
+              className="absolute top-4 right-4 bg-red-500 text-white rounded-full w-10 h-10 flex items-center justify-center hover:bg-red-600 font-bold text-xl"
+              title="Tutup modal"
+            >
+              ×
+            </button>
+            <img
+              src={selectedImage}
+              alt="Bukti Foto Ukuran Penuh"
+              className="w-full h-auto"
+            />
+          </div>
         </div>
       )}
     </div>

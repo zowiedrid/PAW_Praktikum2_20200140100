@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
+import Webcam from 'react-webcam';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 
@@ -20,8 +21,15 @@ function PresensiPage() {
   const [loading, setLoading] = useState(false);
   const [coords, setCoords] = useState(null);
   const [locationError, setLocationError] = useState('');
+  const [image, setImage] = useState(null);
+  const webcamRef = useRef(null);
 
   const getToken = () => localStorage.getItem('token');
+
+  const capture = useCallback(() => {
+    const imageSrc = webcamRef.current.getScreenshot();
+    setImage(imageSrc);
+  }, [webcamRef]);
 
   // Get location on component mount
   useEffect(() => {
@@ -68,28 +76,38 @@ function PresensiPage() {
       return;
     }
 
+    if (!image) {
+      setError("Foto wajib ada! Silahkan ambil foto terlebih dahulu.");
+      return;
+    }
+
     setError('');
     setMessage('');
     setLoading(true);
 
     try {
       const token = getToken();
-      const config = {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      };
+      const blob = await (await fetch(image)).blob();
+      
+      // Buat FormData
+      const formData = new FormData();
+      formData.append('latitude', coords.lat);
+      formData.append('longitude', coords.lng);
+      formData.append('image', blob, 'selfie.jpg');
 
       const response = await axios.post(
         'http://localhost:3001/api/presensi/check-in',
+        formData,
         {
-          latitude: coords.lat,
-          longitude: coords.lng
-        },
-        config
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          }
+        }
       );
 
       setMessage(response.data.message);
+      setImage(null); // Reset foto setelah sukses
     } catch (err) {
       setError(err.response ? err.response.data.message : 'Check-in gagal');
     } finally {
@@ -161,10 +179,42 @@ function PresensiPage() {
             </div>
           )}
 
+          {/* Tampilan Kamera */}
+          <div className="my-4 border rounded-lg overflow-hidden bg-black">
+            {image ? (
+              <img src={image} alt="Selfie" className="w-full" />
+            ) : (
+              <Webcam
+                audio={false}
+                ref={webcamRef}
+                screenshotFormat="image/jpeg"
+                className="w-full"
+              />
+            )}
+          </div>
+
+          <div className="mb-6">
+            {!image ? (
+              <button 
+                onClick={capture} 
+                className="bg-blue-500 text-white px-4 py-2 rounded w-full font-semibold hover:bg-blue-600"
+              >
+                Ambil Foto 📸
+              </button>
+            ) : (
+              <button 
+                onClick={() => setImage(null)} 
+                className="bg-gray-500 text-white px-4 py-2 rounded w-full font-semibold hover:bg-gray-600"
+              >
+                Foto Ulang 🔄
+              </button>
+            )}
+          </div>
+
           <div className="flex gap-4 mb-6">
             <button
               onClick={handleCheckIn}
-              disabled={loading || !coords}
+              disabled={loading || !coords || !image}
               className="flex-1 py-3 px-4 bg-green-600 text-white font-semibold rounded-md shadow-sm hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Memproses...' : 'Check-In'}

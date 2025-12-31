@@ -1,7 +1,30 @@
  // 1. Ganti sumber data dari array ke model Sequelize
  const { Presensi } = require("../models");
  const { format } = require("date-fns-tz");
+ const multer = require('multer');
+ const path = require('path');
  const timeZone = "Asia/Jakarta";
+
+ // Konfigurasi Multer untuk upload foto
+ const storage = multer.diskStorage({
+   destination: (req, file, cb) => {
+     cb(null, 'uploads/');
+   },
+   filename: (req, file, cb) => {
+     // Format nama file: userId-timestamp.jpg
+     cb(null, `${req.user.id}-${Date.now()}${path.extname(file.originalname)}`);
+   }
+ });
+
+ const fileFilter = (req, file, cb) => {
+   if (file.mimetype.startsWith('image/')) {
+     cb(null, true);
+   } else {
+     cb(new Error('Hanya file gambar yang diperbolehkan!'), false);
+   }
+ };
+
+ exports.upload = multer({ storage: storage, fileFilter: fileFilter });
   
  exports.CheckIn = async (req, res) => {
    // 2. Gunakan try...catch untuk error handling
@@ -9,6 +32,8 @@
    const { id: userId, nama: userName } = req.user;
    const { latitude, longitude } = req.body; // Ambil data lokasi dari request body
      const waktuSekarang = new Date();
+
+     const buktiFoto = req.file ? req.file.path : null;
   
      // 3. Ubah cara mencari data menggunakan 'findOne' dari Sequelize
      const existingRecord = await Presensi.findOne({
@@ -27,6 +52,7 @@
        checkIn: waktuSekarang,
        latitude: latitude, // Simpan lokasi ke database
        longitude: longitude, // Simpan lokasi ke database
+       buktiFoto: buktiFoto // Simpan path foto
      });
      
      const formattedData = {
@@ -34,7 +60,8 @@
          checkIn: format(newRecord.checkIn, "yyyy-MM-dd HH:mm:ssXXX", { timeZone }),
          checkOut: null,
          latitude: newRecord.latitude,
-         longitude: newRecord.longitude
+         longitude: newRecord.longitude,
+         buktiFoto: newRecord.buktiFoto
      };
   
      res.status(201).json({
