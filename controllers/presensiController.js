@@ -7,6 +7,7 @@
    // 2. Gunakan try...catch untuk error handling
    try {
    const { id: userId, nama: userName } = req.user;
+   const { latitude, longitude } = req.body; // Ambil data lokasi dari request body
      const waktuSekarang = new Date();
   
      // 3. Ubah cara mencari data menggunakan 'findOne' dari Sequelize
@@ -24,12 +25,16 @@
      const newRecord = await Presensi.create({
        userId: userId,
        checkIn: waktuSekarang,
+       latitude: latitude, // Simpan lokasi ke database
+       longitude: longitude, // Simpan lokasi ke database
      });
      
      const formattedData = {
          userId: newRecord.userId,
          checkIn: format(newRecord.checkIn, "yyyy-MM-dd HH:mm:ssXXX", { timeZone }),
-         checkOut: null
+         checkOut: null,
+         latitude: newRecord.latitude,
+         longitude: newRecord.longitude
      };
   
      res.status(201).json({
@@ -49,6 +54,7 @@
    // Gunakan try...catch
    try {
    const { id: userId, nama: userName } = req.user;
+   const { latitude, longitude } = req.body; // Ambil data lokasi dari request body
      const waktuSekarang = new Date();
   
      // Cari data di database
@@ -64,12 +70,16 @@
   
      // 5. Update dan simpan perubahan ke database
      recordToUpdate.checkOut = waktuSekarang;
+     if (latitude) recordToUpdate.latitude = latitude;
+     if (longitude) recordToUpdate.longitude = longitude;
      await recordToUpdate.save();
   
      const formattedData = {
        userId: recordToUpdate.userId,
        checkIn: format(recordToUpdate.checkIn, "yyyy-MM-dd HH:mm:ssXXX", { timeZone }),
        checkOut: format(recordToUpdate.checkOut, "yyyy-MM-dd HH:mm:ssXXX", { timeZone }),
+       latitude: recordToUpdate.latitude,
+       longitude: recordToUpdate.longitude
      };
   
      res.json({

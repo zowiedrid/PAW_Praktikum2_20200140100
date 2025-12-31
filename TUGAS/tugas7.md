@@ -1,4 +1,4 @@
-# Tugas 6 - Integrasi Frontend React dengan Backend API (Autentikasi)
+# Tugas 7 - Integrasi Frontend React dengan Backend API (Autentikasi)
 
 Nama : Ilham Fadhilah
 NIM  : 20200140100
